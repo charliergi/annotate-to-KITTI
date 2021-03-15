@@ -70,17 +70,12 @@ if __name__ == '__main__':
     datasetImagePath = datasetPath+"/images"
     datasetLabelsPath = datasetPath+"/labels"
     current_path = getcwd()
-    destination_images_path = current_path+'/'+datasetPath.split('/')[-1]+'_Images_KITTI'
-    destination_annotations_path = current_path+'/'+datasetPath.split('/')[-1]+'_Annotations_KITTI'
+    destination_images_path = datasetImagePath
+    destination_annotations_path = datasetLabelsPath
 
     obj_label = input('Enter default object label: ')
     obj_label_default = obj_label
 
-    if(not exists(destination_images_path)):
-        mkdir(destination_images_path)
-
-    if(not exists(destination_annotations_path)):
-        mkdir(destination_annotations_path)
     logf = open("logFile.log", "w")
     for datasetImgFile in listdir(datasetImagePath):
         if isfile(join(datasetImagePath, datasetImgFile)):
@@ -104,6 +99,8 @@ if __name__ == '__main__':
             destImgFile = destination_images_path + '/' + datasetImgFile
             overlay = img.copy()
             output = img.copy()
+
+            #display the previously annotated images
             if(exists(destAnnFile)):
                 logf.write("Annotation already exists for {0}\n".format(filepath))
                 # dest ann file parsing :
@@ -114,8 +111,8 @@ if __name__ == '__main__':
                         except ValueError:
                             print(line)
                         else:
-                            cv2.rectangle(overlay,(int(float(xmin)), int(float(ymin))), (int(float(xmax)), int(float(ymax))), (0,0,255),-1)
-                cv2.addWeighted(overlay,0.7,output,0.3,0,output)
+                            cv2.rectangle(overlay,(int(float(xmin)), int(float(ymin))), (int(float(xmax)), int(float(ymax))), (0,0,255),0)
+                cv2.addWeighted(overlay,0.8,output,0.2,0,output)
             kitti_data = list()
             mask = np.zeros((rows, columns, colors), dtype=np.uint8)
             mask_prev = list()
@@ -128,7 +125,7 @@ if __name__ == '__main__':
                 kitti_data_cell = dict()
                 if(fx != -1 and fy != -1 and lx != -1 and ly != -1):
                     cv2.rectangle(mask_ref,(fx,fy),(lx,ly),(0,200,0),-1)
-                cv2.imshow('image',cv2.addWeighted(img+mask+mask_ref, 0.7, img, 0.3, 0))
+                cv2.imshow('image',cv2.addWeighted(output+mask+mask_ref, 0.7, output, 0.3, 0))
                 k = cv2.waitKey(1) & 0xFF
                 if k == 27: # Stop annotating the dataset (Esc key)
                     check = 1
@@ -165,7 +162,7 @@ if __name__ == '__main__':
                     annotation_file_obj.write(annotation_str)
                 annotation_file_obj.close()
                 # Copy the image into separate folder
-                copyfile(filepath,destImgFile)
+                #copyfile(filepath,destImgFile)
             if(check): # Corresponding to the Esc key
                 logf.write("Qutting the annotation process\n")
                 break

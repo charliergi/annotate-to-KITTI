@@ -11,6 +11,7 @@ from os import listdir, mkdir, getcwd
 from os.path import isfile, join, exists
 import json
 from shutil import copyfile
+import sys
 
 # Global variables
 ix,iy = -1,-1 # Iintial mouse point coordinates
@@ -22,6 +23,8 @@ mask = None # Mask for current rendering
 kitti_data_cell = None # Info on label and bbox for single object
 kitti_data = None # List that holds all the data cells for one image
 obj_label = None # Object Label
+
+
 
 # mouse callback function
 def draw_annotation(event,x,y,flags,param):
@@ -61,8 +64,11 @@ def draw_annotation(event,x,y,flags,param):
         lx = x
         ly = y
 
+
 if __name__ == '__main__':
-    datasetPath = input('Enter the path to dataset: ')
+    datasetPath = str(sys.argv[1])
+    datasetImagePath = datasetPath+"/images"
+    datasetLabelsPath = datasetPath+"/labels"
     current_path = getcwd()
     destination_images_path = current_path+'/'+datasetPath.split('/')[-1]+'_Images_KITTI'
     destination_annotations_path = current_path+'/'+datasetPath.split('/')[-1]+'_Annotations_KITTI'
@@ -76,10 +82,10 @@ if __name__ == '__main__':
     if(not exists(destination_annotations_path)):
         mkdir(destination_annotations_path)
     logf = open("logFile.log", "w")
-    for datasetImgFile in listdir(datasetPath):
-        if isfile(join(datasetPath, datasetImgFile)):
+    for datasetImgFile in listdir(datasetImagePath):
+        if isfile(join(datasetImagePath, datasetImgFile)):
             obj_label = obj_label_default
-            filepath = datasetPath+'/'+datasetImgFile
+            filepath = datasetImagePath+'/'+datasetImgFile
             img = cv2.imread(filepath,1)
             try:
                 rows, columns, colors = img.shape
@@ -87,7 +93,7 @@ if __name__ == '__main__':
                 logf.write("Failed to open {0}: {1}\n".format(filepath, str(e)))
                 continue
             logf.write("\nOpened the image {0} for annotation\n".format(filepath))
-            resize_factor = 640.00/max(rows, columns)
+            resize_factor = 4000.00/max(rows, columns)
             resized = False
             if (resize_factor < 1):
                 resized = True
@@ -96,13 +102,24 @@ if __name__ == '__main__':
             destFileName = datasetImgFile.split('.')[0]
             destAnnFile = destination_annotations_path + '/' + destFileName +'.txt'
             destImgFile = destination_images_path + '/' + datasetImgFile
+            overlay = img.copy()
+            output = img.copy()
             if(exists(destAnnFile)):
                 logf.write("Annotation already exists for {0}\n".format(filepath))
-                continue
+                # dest ann file parsing :
+                with open(destAnnFile,'r') as l:
+                    for line in l:
+                        try:
+                            label, _, _, _, xmin, ymin, xmax, ymax, _, _ , _, _, _, _ , _= line.split(' ')
+                        except ValueError:
+                            print(line)
+                        else:
+                            cv2.rectangle(overlay,(int(float(xmin)), int(float(ymin))), (int(float(xmax)), int(float(ymax))), (0,0,255),-1)
+                cv2.addWeighted(overlay,0.7,output,0.3,0,output)
             kitti_data = list()
             mask = np.zeros((rows, columns, colors), dtype=np.uint8)
             mask_prev = list()
-            cv2.namedWindow('image',cv2.WINDOW_NORMAL)
+            cv2.namedWindow('image',cv2.WINDOW_AUTOSIZE)
             cv2.setMouseCallback('image',draw_annotation)
             check = 0 # Flag to stop annotation process
             cancel_check = 0 # Flag to skip annotation to next image

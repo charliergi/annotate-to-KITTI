@@ -7,7 +7,7 @@ Description: This script generates annotations for images of a given dataset
 '''
 import cv2
 import numpy as np
-from os import listdir, mkdir, getcwd
+from os import listdir, mkdir, getcwd, path
 from os.path import isfile, join, exists
 import json
 from shutil import copyfile
@@ -69,6 +69,7 @@ if __name__ == '__main__':
     datasetPath = str(sys.argv[1])
     datasetImagePath = datasetPath+"/images"
     datasetLabelsPath = datasetPath+"/labels"
+    if not path.exists(datasetLabelsPath) : mkdir(datasetLabelsPath)
     current_path = getcwd()
     destination_images_path = datasetImagePath
     destination_annotations_path = datasetLabelsPath

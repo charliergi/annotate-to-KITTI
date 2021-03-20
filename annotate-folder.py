@@ -7,6 +7,7 @@ Description: This script generates annotations for images of a given dataset
 '''
 import cv2
 import numpy as np
+import os
 from os import listdir, mkdir, getcwd, path
 from os.path import isfile, join, exists
 import json
@@ -67,12 +68,12 @@ def draw_annotation(event,x,y,flags,param):
 
 if __name__ == '__main__':
     datasetPath = str(sys.argv[1])
-    datasetImagePath = datasetPath+"/images"
-    datasetLabelsPath = datasetPath+"/labels"
+    datasetImagePath = datasetPath+"/test/images"
+    datasetLabelsPath = datasetPath+"/train/labels"
     if not path.exists(datasetLabelsPath) : mkdir(datasetLabelsPath)
     current_path = getcwd()
-    destination_images_path = datasetImagePath
     destination_annotations_path = datasetLabelsPath
+    destination_images_path = datasetPath+"/train/images"
 
     obj_label = input('Enter default object label: ')
     obj_label_default = obj_label
@@ -164,7 +165,10 @@ if __name__ == '__main__':
                 annotation_file_obj.close()
                 # Copy the image into separate folder
                 #copyfile(filepath,destImgFile)
+                os.rename(destAnnFile,datasetPath+"/train/labels/"+destFileName+".txt")
+                os.rename(filepath,destImgFile)
                 #TODO: move annotated images to train/images folder and move annotated labels to train/labels
+                #TODO: take into account a way to still see annotations done by the machine and correct them
             if(check): # Corresponding to the Esc key
                 logf.write("Qutting the annotation process\n")
                 break

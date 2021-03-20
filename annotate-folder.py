@@ -164,6 +164,7 @@ if __name__ == '__main__':
                 annotation_file_obj.close()
                 # Copy the image into separate folder
                 #copyfile(filepath,destImgFile)
+                #TODO: move annotated images to train/images folder and move annotated labels to train/labels
             if(check): # Corresponding to the Esc key
                 logf.write("Qutting the annotation process\n")
                 break

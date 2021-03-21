@@ -68,7 +68,11 @@ def draw_annotation(event,x,y,flags,param):
 
 if __name__ == '__main__':
     datasetPath = str(sys.argv[1])
-    datasetImagePath = datasetPath+"/test/images"
+    datasetImagePath=""
+    if len(sys.argv)>2 and sys.argv[2]=="review":
+        datasetImagePath = datasetPath+"/train/images"
+    else:
+        datasetImagePath = datasetPath+"/test/images"
     datasetLabelsPath = datasetPath+"/train/labels"
     if not path.exists(datasetLabelsPath) : mkdir(datasetLabelsPath)
     current_path = getcwd()
@@ -101,9 +105,12 @@ if __name__ == '__main__':
             destImgFile = destination_images_path + '/' + datasetImgFile
             overlay = img.copy()
             output = img.copy()
+            
+            print("loaded picture file",destImgFile)
 
             #display the previously annotated images
             if(exists(destAnnFile)):
+                print("loaded annotation file",destAnnFile)
                 logf.write("Annotation already exists for {0}\n".format(filepath))
                 # dest ann file parsing :
                 with open(destAnnFile,'r') as l:

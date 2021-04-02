@@ -81,9 +81,10 @@ if __name__ == '__main__':
         mode="review"
 
     # Mode to verify inference made and transfer into train set
-    elif len(sys.argv)>2 and sys.argv[2]=="inference":
-        datasetImagePath = datasetPath+"/faster_rcnn/inference_results_images"
-        datasetLabelsPath = datasetPath+"/faster_rcnn/inference_dump_labels"
+    elif len(sys.argv)>3 and sys.argv[2]=="inference":
+        datasetImagePath = datasetPath+"/inference/images"
+        datasetLabelsPath = datasetPath+"/faster_rcnn/inference_labels"
+        start=int(sys.argv[3])
         mode="inference"
     else:
         # Mode to make annotations, take image from the inference folder and put it into training set.
@@ -203,7 +204,7 @@ if __name__ == '__main__':
                 annotation_file_obj.close()
                 # Copy the image into separate folder
                 #copyfile(filepath,destImgFile)
-            if(not (len(kitti_data) == 0) and not(cancel_check)) or mode=="inference" and not(cancel_check):
+            if(not (len(kitti_data) == 0) and not(cancel_check)) or mode=="inference" and not(cancel_check) and not(check):
                 os.rename(destAnnFile,datasetPath+"/train/labels/"+destFileName+".txt")
                 os.rename(filepath,destImgFile)
             if(check): # Corresponding to the Esc key

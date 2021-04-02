@@ -69,13 +69,28 @@ def draw_annotation(event,x,y,flags,param):
 if __name__ == '__main__':
     datasetPath = str(sys.argv[1])
     datasetImagePath=""
-    if len(sys.argv)>2 and sys.argv[2]=="review":
+    datasetLabelsPath=""
+    start=0
+    mode = "normal"
+    # Mode to verify inference made inside training set
+    # indicate the image where you want to begin
+    if len(sys.argv)>3 and sys.argv[2]=="review":
         datasetImagePath = datasetPath+"/train/images"
+        start=int(sys.argv[3])
+        datasetLabelsPath = datasetPath+"/train/labels"
+        mode="review"
+
+    # Mode to verify inference made and transfer into train set
+    elif len(sys.argv)>2 and sys.argv[2]=="inference":
+        datasetImagePath = datasetPath+"/faster_rcnn/inference_results_images"
+        datasetLabelsPath = datasetPath+"/faster_rcnn/inference_dump_labels"
+        mode="inference"
     else:
-        datasetImagePath = datasetPath+"/test/images"
-    datasetLabelsPath = datasetPath+"/train/labels"
+        # Mode to make annotations, take image from the inference folder and put it into training set.
+        datasetImagePath = datasetPath+"/inference/images"
+        datasetLabelsPath = datasetPath+"/train/labels"
     if not path.exists(datasetLabelsPath) : mkdir(datasetLabelsPath)
-    current_path = getcwd()
+    
     destination_annotations_path = datasetLabelsPath
     destination_images_path = datasetPath+"/train/images"
 
@@ -83,7 +98,14 @@ if __name__ == '__main__':
     obj_label_default = obj_label
 
     logf = open("logFile.log", "w")
-    for datasetImgFile in listdir(datasetImagePath):
+    sortedImages = listdir(datasetImagePath)
+    sortedImages.sort(key=lambda filename:int(filename.split("-")[0]))
+    index_start=0
+    while index_start<len(sortedImages) and start>int(sortedImages[index_start].split("-")[0]):
+        index_start+=1
+    print(index_start)
+    sortedImages = sortedImages[index_start:]
+    for datasetImgFile in sortedImages:
         if isfile(join(datasetImagePath, datasetImgFile)):
             obj_label = obj_label_default
             filepath = datasetImagePath+'/'+datasetImgFile
@@ -106,7 +128,7 @@ if __name__ == '__main__':
             overlay = img.copy()
             output = img.copy()
             
-            print("loaded picture file",destImgFile)
+            print("loaded picture file",datasetImagePath+"/"+datasetImgFile)
 
             #display the previously annotated images
             if(exists(destAnnFile)):
@@ -116,11 +138,14 @@ if __name__ == '__main__':
                 with open(destAnnFile,'r') as l:
                     for line in l:
                         try:
-                            label, _, _, _, xmin, ymin, xmax, ymax, _, _ , _, _, _, _ , _= line.split(' ')
+                            parse = line.split(' ')
+                            #label, _, _, _, xmin, ymin, xmax, ymax, _, _ , _, _, _, _ , _, _= line.split(' ')
+                            label, xmin, ymin, xmax, ymax = parse[0], parse[4], parse[5], parse[6], parse[7]
+
                         except ValueError:
-                            print(line)
+                                print(line)
                         else:
-                            cv2.rectangle(overlay,(int(float(xmin)), int(float(ymin))), (int(float(xmax)), int(float(ymax))), (0,0,255),0)
+                            cv2.rectangle(overlay,(int(float(xmin)), int(float(ymin))), (int(float(xmax)), int(float(ymax))), (0,0,255),thickness=3)
                 cv2.addWeighted(overlay,0.8,output,0.2,0,output)
             kitti_data = list()
             mask = np.zeros((rows, columns, colors), dtype=np.uint8)
@@ -150,10 +175,16 @@ if __name__ == '__main__':
                     logf.write("Changing the label from {0} to ".format(obj_label))
                     obj_label = input('Enter the object label: ')
                     logf.write("{0}\n".format(obj_label))
-                elif k == ord('n'): # Skip to next image
+                elif k == ord('d') and (mode=="normal" or mode=="inference"):
                     cancel_check = 1
-                    logf.write("Skipping to next image. Annotation not saved.\n")
+                    print("hello")
+                    logf.write("Delete image with its citation")
+                    #mask = mask_prev.pop()
+                    #kitti_data.pop()
+                    if path.exists(datasetImagePath+"/"+datasetImgFile): os.remove(datasetImagePath+"/"+datasetImgFile)
+                    if path.exists(destAnnFile): os.remove(destAnnFile)
                     break
+
 
             cv2.destroyAllWindows()
             if(not (len(kitti_data) == 0) and not(cancel_check)):
@@ -172,10 +203,9 @@ if __name__ == '__main__':
                 annotation_file_obj.close()
                 # Copy the image into separate folder
                 #copyfile(filepath,destImgFile)
+            if(not (len(kitti_data) == 0) and not(cancel_check)) or mode=="inference" and not(cancel_check):
                 os.rename(destAnnFile,datasetPath+"/train/labels/"+destFileName+".txt")
                 os.rename(filepath,destImgFile)
-                #TODO: move annotated images to train/images folder and move annotated labels to train/labels
-                #TODO: take into account a way to still see annotations done by the machine and correct them
             if(check): # Corresponding to the Esc key
                 logf.write("Qutting the annotation process\n")
                 break

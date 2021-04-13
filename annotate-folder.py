@@ -155,6 +155,7 @@ if __name__ == '__main__':
             cv2.setMouseCallback('image',draw_annotation)
             check = 0 # Flag to stop annotation process
             cancel_check = 0 # Flag to skip annotation to next image
+            print("Showing image " + datasetImgFile)
             while(1):
                 mask_ref = np.zeros((rows, columns, colors), dtype=np.uint8)
                 kitti_data_cell = dict()
@@ -176,7 +177,7 @@ if __name__ == '__main__':
                     logf.write("Changing the label from {0} to ".format(obj_label))
                     obj_label = input('Enter the object label: ')
                     logf.write("{0}\n".format(obj_label))
-                elif k == ord('d') and (mode=="normal" or mode=="inference"):
+                elif k == ord('d') and (mode=="normal" or mode=="inference" or mode=='review'):
                     cancel_check = 1
                     print("hello")
                     logf.write("Delete image with its citation")

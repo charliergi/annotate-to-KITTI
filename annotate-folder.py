@@ -108,123 +108,133 @@ if __name__ == '__main__':
     sortedImages = sortedImages[index_start:]
     imageIndex = -1
     while imageIndex < len(sortedImages)-1:
-        imageIndex += 1
-
-        datasetImgFile = sortedImages[imageIndex]
-        if isfile(join(datasetImagePath, datasetImgFile)):
-            obj_label = obj_label_default
-            filepath = datasetImagePath+'/'+datasetImgFile
-            img = cv2.imread(filepath,1)
-            try:
-                rows, columns, colors = img.shape
-            except Exception as e:
-                logf.write("Failed to open {0}: {1}\n".format(filepath, str(e)))
-                continue
-            logf.write("\nOpened the image {0} for annotation\n".format(filepath))
-            resize_factor = 4000.00/max(rows, columns)
-            resized = False
-            if (resize_factor < 1):
-                resized = True
-                img = cv2.resize(img, None, fx=resize_factor,fy=resize_factor)
-                rows, columns, colors = img.shape
-            destFileName = datasetImgFile.split('.')[0]
-            destAnnFile = destination_annotations_path + '/' + destFileName +'.txt'
-            destImgFile = destination_images_path + '/' + datasetImgFile
-            overlay = img.copy()
-            output = img.copy()
-            
-            print("loaded picture file",datasetImagePath+"/"+datasetImgFile)
-
-            #display the previously annotated images
-            if(exists(destAnnFile)):
-                print("loaded annotation file",destAnnFile)
-                logf.write("Annotation already exists for {0}\n".format(filepath))
-                # dest ann file parsing :
-                with open(destAnnFile,'r') as l:
-                    for line in l:
-                        try:
-                            parse = line.split(' ')
-                            #label, _, _, _, xmin, ymin, xmax, ymax, _, _ , _, _, _, _ , _, _= line.split(' ')
-                            label, xmin, ymin, xmax, ymax = parse[0], parse[4], parse[5], parse[6], parse[7]
-
-                        except ValueError:
-                                print(line)
-                        else:
-                            cv2.rectangle(overlay,(int(float(xmin)), int(float(ymin))), (int(float(xmax)), int(float(ymax))), (0,0,255),thickness=3)
-                cv2.addWeighted(overlay,0.8,output,0.2,0,output)
-            kitti_data = list()
-            mask = np.zeros((rows, columns, colors), dtype=np.uint8)
-            mask_prev = list()
-            cv2.namedWindow('image',cv2.WINDOW_AUTOSIZE)
-            cv2.setMouseCallback('image',draw_annotation)
-            check = 0 # Flag to stop annotation process
-            cancel_check = 0 # Flag to skip annotation to next image
-            print("Showing image " + datasetImgFile)
-            while(1):
-                mask_ref = np.zeros((rows, columns, colors), dtype=np.uint8)
-                kitti_data_cell = dict()
-                if(fx != -1 and fy != -1 and lx != -1 and ly != -1):
-                    cv2.rectangle(mask_ref,(fx,fy),(lx,ly),(0,200,0),-1)
-                cv2.imshow('image',cv2.addWeighted(output+mask+mask_ref, 0.7, output, 0.3, 0))
-                k = cv2.waitKey(1) & 0xFF
-                if k == 27: # Stop annotating the dataset (Esc key)
-                    check = 1
-                    break
-                elif k == ord('q'): # Finish annotating present image
-                    logf.write("Ending the annotation process for {0}\n".format(filepath))
-                    break
-                elif k == ord('c'): # Cancel annotation for most recent bbox
-                    logf.write("Canceling the previous bbox annotation\n")
-                    mask = mask_prev.pop()
-                    kitti_data.pop()
-                elif k == ord('l'): # Change the label for next object
-                    logf.write("Changing the label from {0} to ".format(obj_label))
-                    obj_label = input('Enter the object label: ')
-                    logf.write("{0}\n".format(obj_label))
-                elif k == ord('d') and (mode=="normal" or mode=="inference" or mode=='review'):
-                    cancel_check = 1
-                    logf.write("Delete image with its citation")
-                    #mask = mask_prev.pop()
-                    #kitti_data.pop()
-                    if path.exists(datasetImagePath+"/"+datasetImgFile): os.remove(datasetImagePath+"/"+datasetImgFile)
-                    if path.exists(destAnnFile): os.remove(destAnnFile)
-                    break
-                elif k== ord('r') and mode=="inference":
-                    cancel_check = 1
-                    imageIndex-=1
-                    oldImgFile = sortedImages[imageIndex]
-                    orginImg = datasetPath+"/train/images/"+oldImgFile
-                    destinationImg = datasetPath+"/inference/images/"+oldImgFile
-                    os.rename(orginImg,destinationImg)
-                    fileName = oldImgFile.split('.')[0]
-                    originLabel = datasetPath+"/train/labels/"+fileName+".txt"
-                    destinationLabel = datasetPath+"/faster_rcnn/inference_labels/"+fileName+".txt"
-                    os.rename(originLabel, destinationLabel)
-                    imageIndex-=1
-                    break
-
-
-            cv2.destroyAllWindows()
-            if(not (len(kitti_data) == 0) and not(cancel_check)):
-                # Write the contents into file
-                annotation_file_obj = open(destAnnFile,'w')
-                for obj in kitti_data:
-                    if (resized):
-                        obj['bbox']['xmin'] /= resize_factor
-                        obj['bbox']['ymin'] /= resize_factor
-                        obj['bbox']['xmax'] /= resize_factor
-                        obj['bbox']['ymax'] /= resize_factor
-                    annotation_str = "%s %.2f %.0f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f\n" \
-                    %(obj['label'], 0, 0, 0, obj['bbox']['xmin'], obj['bbox']['ymin'], obj['bbox']['xmax'], \
-                    obj['bbox']['ymax'], 0, 0, 0, 0, 0, 0, 0)
-                    annotation_file_obj.write(annotation_str)
-                annotation_file_obj.close()
-                # Copy the image into separate folder
-                #copyfile(filepath,destImgFile)
-            if(not (len(kitti_data) == 0) and not(cancel_check)) or mode=="inference" and not(cancel_check) and not(check):
-                os.rename(destAnnFile,datasetPath+"/train/labels/"+destFileName+".txt")
-                os.rename(filepath,destImgFile)
-            if(check): # Corresponding to the Esc key
-                logf.write("Qutting the annotation process\n")
+        
+        while True : 
+            imageIndex += 1
+            datasetImgFile = sortedImages[imageIndex]
+            filepath = join(datasetImagePath, datasetImgFile)
+            if path.exists(filepath) and isfile(filepath) or imageIndex == len(sortedImages):
                 break
+
+        if imageIndex == len(sortedImages):
+            break
+
+        obj_label = obj_label_default
+        filepath = datasetImagePath+'/'+datasetImgFile
+        img = cv2.imread(filepath,1)
+        try:
+            rows, columns, colors = img.shape
+        except Exception as e:
+            logf.write("Failed to open {0}: {1}\n".format(filepath, str(e)))
+            continue
+        logf.write("\nOpened the image {0} for annotation\n".format(filepath))
+        resize_factor = 4000.00/max(rows, columns)
+        resized = False
+        if (resize_factor < 1):
+            resized = True
+            img = cv2.resize(img, None, fx=resize_factor,fy=resize_factor)
+            rows, columns, colors = img.shape
+        destFileName = datasetImgFile.split('.')[0]
+        destAnnFile = destination_annotations_path + '/' + destFileName +'.txt'
+        destImgFile = destination_images_path + '/' + datasetImgFile
+        overlay = img.copy()
+        output = img.copy()
+        
+        print("loaded picture file",datasetImagePath+"/"+datasetImgFile)
+
+        #display the previously annotated images
+        if(exists(destAnnFile)):
+            print("loaded annotation file",destAnnFile)
+            logf.write("Annotation already exists for {0}\n".format(filepath))
+            # dest ann file parsing :
+            with open(destAnnFile,'r') as l:
+                for line in l:
+                    try:
+                        parse = line.split(' ')
+                        #label, _, _, _, xmin, ymin, xmax, ymax, _, _ , _, _, _, _ , _, _= line.split(' ')
+                        label, xmin, ymin, xmax, ymax = parse[0], parse[4], parse[5], parse[6], parse[7]
+
+                    except ValueError:
+                            print(line)
+                    else:
+                        cv2.rectangle(overlay,(int(float(xmin)), int(float(ymin))), (int(float(xmax)), int(float(ymax))), (0,0,255),thickness=3)
+            cv2.addWeighted(overlay,0.8,output,0.2,0,output)
+        kitti_data = list()
+        mask = np.zeros((rows, columns, colors), dtype=np.uint8)
+        mask_prev = list()
+        cv2.namedWindow('image',cv2.WINDOW_AUTOSIZE)
+        cv2.setMouseCallback('image',draw_annotation)
+        check = 0 # Flag to stop annotation process
+        cancel_check = 0 # Flag to skip annotation to next image
+        print("Showing image " + datasetImgFile)
+        while(1):
+            mask_ref = np.zeros((rows, columns, colors), dtype=np.uint8)
+            kitti_data_cell = dict()
+            if(fx != -1 and fy != -1 and lx != -1 and ly != -1):
+                cv2.rectangle(mask_ref,(fx,fy),(lx,ly),(0,200,0),-1)
+            cv2.imshow('image',cv2.addWeighted(output+mask+mask_ref, 0.7, output, 0.3, 0))
+            k = cv2.waitKey(1) & 0xFF
+            if k == 27: # Stop annotating the dataset (Esc key)
+                check = 1
+                break
+            elif k == ord('q'): # Finish annotating present image
+                logf.write("Ending the annotation process for {0}\n".format(filepath))
+                break
+            elif k == ord('c'): # Cancel annotation for most recent bbox
+                logf.write("Canceling the previous bbox annotation\n")
+                mask = mask_prev.pop()
+                kitti_data.pop()
+            elif k == ord('l'): # Change the label for next object
+                logf.write("Changing the label from {0} to ".format(obj_label))
+                obj_label = input('Enter the object label: ')
+                logf.write("{0}\n".format(obj_label))
+            elif k == ord('d') and (mode=="normal" or mode=="inference" or mode=='review'):
+                cancel_check = 1
+                logf.write("Delete image with its citation")
+                #mask = mask_prev.pop()
+                #kitti_data.pop()
+                if path.exists(datasetImagePath+"/"+datasetImgFile): os.remove(datasetImagePath+"/"+datasetImgFile)
+                if path.exists(destAnnFile): os.remove(destAnnFile)
+                break
+            elif k== ord('r') and mode=="inference":
+                cancel_check = 1
+                while True : 
+                    imageIndex -= 1
+                    oldImgFile = sortedImages[imageIndex]
+                    originImg = join(datasetPath, "train/images/"+oldImgFile)
+                    if path.exists(originImg) and isfile(originImg) or imageIndex == len(sortedImages):
+                        break
+                destinationImg = datasetPath+"/inference/images/"+oldImgFile
+                os.rename(originImg,destinationImg)
+                fileName = oldImgFile.split('.')[0]
+                originLabel = datasetPath+"/train/labels/"+fileName+".txt"
+                destinationLabel = datasetPath+"/faster_rcnn/inference_labels/"+fileName+".txt"
+                os.rename(originLabel, destinationLabel)
+                imageIndex-=1
+                break
+
+
+        cv2.destroyAllWindows()
+        if(not (len(kitti_data) == 0) and not(cancel_check)):
+            # Write the contents into file
+            annotation_file_obj = open(destAnnFile,'w')
+            for obj in kitti_data:
+                if (resized):
+                    obj['bbox']['xmin'] /= resize_factor
+                    obj['bbox']['ymin'] /= resize_factor
+                    obj['bbox']['xmax'] /= resize_factor
+                    obj['bbox']['ymax'] /= resize_factor
+                annotation_str = "%s %.2f %.0f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f\n" \
+                %(obj['label'], 0, 0, 0, obj['bbox']['xmin'], obj['bbox']['ymin'], obj['bbox']['xmax'], \
+                obj['bbox']['ymax'], 0, 0, 0, 0, 0, 0, 0)
+                annotation_file_obj.write(annotation_str)
+            annotation_file_obj.close()
+            # Copy the image into separate folder
+            #copyfile(filepath,destImgFile)
+        if(not (len(kitti_data) == 0) and not(cancel_check)) or mode=="inference" and not(cancel_check) and not(check):
+            os.rename(destAnnFile,datasetPath+"/train/labels/"+destFileName+".txt")
+            os.rename(filepath,destImgFile)
+        if(check): # Corresponding to the Esc key
+            logf.write("Qutting the annotation process\n")
+            break
     logf.close()

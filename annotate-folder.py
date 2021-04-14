@@ -106,7 +106,11 @@ if __name__ == '__main__':
         index_start+=1
     print(index_start)
     sortedImages = sortedImages[index_start:]
-    for datasetImgFile in sortedImages:
+    imageIndex = -1
+    while imageIndex < len(sortedImages)-1:
+        imageIndex += 1
+
+        datasetImgFile = sortedImages[imageIndex]
         if isfile(join(datasetImagePath, datasetImgFile)):
             obj_label = obj_label_default
             filepath = datasetImagePath+'/'+datasetImgFile
@@ -179,12 +183,24 @@ if __name__ == '__main__':
                     logf.write("{0}\n".format(obj_label))
                 elif k == ord('d') and (mode=="normal" or mode=="inference" or mode=='review'):
                     cancel_check = 1
-                    print("hello")
                     logf.write("Delete image with its citation")
                     #mask = mask_prev.pop()
                     #kitti_data.pop()
                     if path.exists(datasetImagePath+"/"+datasetImgFile): os.remove(datasetImagePath+"/"+datasetImgFile)
                     if path.exists(destAnnFile): os.remove(destAnnFile)
+                    break
+                elif k== ord('r') and mode=="inference":
+                    cancel_check = 1
+                    imageIndex-=1
+                    oldImgFile = sortedImages[imageIndex]
+                    orginImg = datasetPath+"/train/images/"+oldImgFile
+                    destinationImg = datasetPath+"/inference/images/"+oldImgFile
+                    os.rename(orginImg,destinationImg)
+                    fileName = oldImgFile.split('.')[0]
+                    originLabel = datasetPath+"/train/labels/"+fileName+".txt"
+                    destinationLabel = datasetPath+"/faster_rcnn/inference_labels/"+fileName+".txt"
+                    os.rename(originLabel, destinationLabel)
+                    imageIndex-=1
                     break
 
 

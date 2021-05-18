@@ -8,6 +8,9 @@ Description: This script generates annotations for images of a given dataset
 import cv2
 import numpy as np
 import os
+from PIL import ImageColor
+import time
+import random
 from os import listdir, mkdir, getcwd, path
 from os.path import isfile, join, exists
 import json
@@ -67,6 +70,8 @@ def draw_annotation(event,x,y,flags,param):
 
 
 if __name__ == '__main__':
+    classes = ["coleoptera","diptera","geometridae","hemiptera","hymenoptera","noctuidae","odonata","orthoptera","trichoptera"]
+    colors_list = [ImageColor.getcolor("#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)]),"RGB") for i in range(len(classes))]
     datasetPath = str(sys.argv[1])
     datasetImagePath=""
     datasetLabelsPath=""
@@ -157,7 +162,9 @@ if __name__ == '__main__':
                     except ValueError:
                             print(line)
                     else:
-                        cv2.rectangle(overlay,(int(float(xmin)), int(float(ymin))), (int(float(xmax)), int(float(ymax))), (0,0,255),thickness=3)
+                        #print(colors_list[classes.index(label)])
+                        cv2.putText(overlay, label, (int(float(xmin)), int(float(ymin))-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, colors_list[classes.index(label)], 1)
+                        cv2.rectangle(overlay,(int(float(xmin)), int(float(ymin))), (int(float(xmax)), int(float(ymax))), colors_list[classes.index(label)],thickness=3)
             cv2.addWeighted(overlay,0.8,output,0.2,0,output)
         kitti_data = list()
         mask = np.zeros((rows, columns, colors), dtype=np.uint8)
@@ -168,6 +175,7 @@ if __name__ == '__main__':
         cancel_check = 0 # Flag to skip annotation to next image
         print("Showing image " + datasetImgFile)
         while(1):
+            time.sleep(0.015) # big improvement in cpu usage
             mask_ref = np.zeros((rows, columns, colors), dtype=np.uint8)
             kitti_data_cell = dict()
             if(fx != -1 and fy != -1 and lx != -1 and ly != -1):
